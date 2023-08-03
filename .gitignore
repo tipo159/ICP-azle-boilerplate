@@ -17,6 +17,8 @@ src/declarations/
 node_modules/
 dist/
 
+# azle files
+.azle/
+
 # environment variables
 .env
-.azle

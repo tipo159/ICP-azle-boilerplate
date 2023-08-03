@@ -1,13 +1,13 @@
 {
   "canisters": {
-    "message_board": {
+    "contribution_weighted_voting_azle": {
       "main": "src/index.ts",
       "type": "custom",
-      "build": "npx azle message_board",
+      "build": "npx azle contribution_weighted_voting_azle",
       "root": "src",
       "ts": "src/index.ts",
       "candid": "src/index.did",
-      "wasm": ".azle/message_board/message_board.wasm.gz"
+      "wasm": ".azle/contribution_weighted_voting_azle/contribution_weighted_voting_azle.wasm.gz"
     }
   }
 }

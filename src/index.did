@@ -1,0 +1,36 @@
+type Poll = record {
+  votingDetails : vec VotingDetail;
+  owner : principal;
+  name : text;
+  description : text;
+  voters : vec Voter;
+  pollClosingAt : nat64;
+  no_of_options : int32;
+  options : vec text;
+};
+type PollPayload = record {
+  pollClosing : text;
+  name : text;
+  description : text;
+  no_of_options : int32;
+  options : vec text;
+};
+type Voter = record { voter : principal; name : text; contribution : float32 };
+type VotingDetail = record {
+  option : int32;
+  name : text;
+  contribution : float32;
+};
+type _AzleResult = variant { Ok : Voter; Err : text };
+type _AzleResult_1 = variant { Ok : Poll; Err : text };
+type _AzleResult_2 = variant { Ok : vec text; Err : text };
+type _AzleResult_3 = variant { Ok : VotingDetail; Err : text };
+service : () -> {
+  changeVoterContribution : (text, text, float32) -> (_AzleResult);
+  createPoll : (PollPayload) -> (_AzleResult_1);
+  getAllPolls : () -> (vec Poll) query;
+  getPollByName : (text) -> (_AzleResult_1) query;
+  getVotingResult : (text) -> (_AzleResult_2) query;
+  registerVoterToPoll : (text, text) -> (_AzleResult);
+  voteToPoll : (text, text, text) -> (_AzleResult_3);
+}
