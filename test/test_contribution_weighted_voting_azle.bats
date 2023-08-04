@@ -13,20 +13,20 @@ run_wrapper() {
 }
 
 #bats test_tags=err
-@test "createPoll Date formatting is invalid" {
+@test "createPoll InvalidDateFormat" {
     dfx identity use default 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle createPoll "(record {\"name\"=\"Poll1\"; \
             \"description\"=\"Poll1\"; \"no_of_options\"=3; \"options\"=(vec { \"option1\"; \"option2\"; \
-            \"option3\" }); \"pollClosing\"=\"2023-07-32T01:02:03+09:00\"})"
-    [[ "$output" == *"Err = \"Date formatting "* ]]
+            \"option3\" }); \"pollClosingDate\"=\"2023-07-32T01:02:03+09:00\"})"
+    [[ "$output" == *"Err = \"Date formatting is invalid."* ]]
 }
 
 #bats test_tags=err
-@test "createPoll The length of options and no_of_options are different" {
+@test "createPoll OptionLengthMismatch" {
     dfx identity use default 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle createPoll "(record {\"name\"=\"Poll1\"; \
             \"description\"=\"Poll1\"; \"no_of_options\"=3; \"options\"=(vec { \"option1\"; \"option2\" }); \
-            \"pollClosing\"=\"${DATE}\"})"
+            \"pollClosingDate\"=\"${DATE}\"})"
     [[ "$output" == *"Err = \"The length of options and no_of_options are different."* ]]
 }
 
@@ -35,16 +35,16 @@ run_wrapper() {
     dfx identity use default 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle createPoll "(record {\"name\"=\"Poll1\"; \
             \"description\"=\"Poll1\"; \"no_of_options\"=3; \"options\"=(vec { \"option1\"; \"option2\"; \"option3\" }); \
-            \"pollClosing\"=\"${DATE}\"})"
+            \"pollClosingDate\"=\"${DATE}\"})"
     [[ "$output" == *"Ok"* ]]
 }
 
 #bats test_tags=err
-@test "createPoll Poll name already in use" {
+@test "createPoll PollAlreadyExists" {
     dfx identity use default 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle createPoll "(record {\"name\"=\"Poll1\"; \
             \"description\"=\"Poll1\"; \"no_of_options\"=3; \"options\"=(vec { \"option1\"; \"option2\"; \"option3\" }); \
-            \"pollClosing\"=\"${DATE}\"})"
+            \"pollClosingDate\"=\"${DATE}\"})"
     [[ "$output" == *"Err = \"Poll "* ]]
 }
 
@@ -53,7 +53,7 @@ run_wrapper() {
     dfx identity use user1 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle createPoll "(record {\"name\"=\"Poll2\"; \
             \"description\"=\"Poll2\"; \"no_of_options\"=3; \"options\"=(vec { \"option1\"; \"option2\"; \"option3\" }); \
-            \"pollClosing\"=\"${DATE}\"})"
+            \"pollClosingDate\"=\"${DATE}\"})"
     [[ "$output" == *"Ok"* ]]
 }
 
@@ -62,24 +62,24 @@ run_wrapper() {
     dfx identity use default 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle createPoll "(record {\"name\"=\"Poll3\"; \
             \"description\"=\"Poll3\"; \"no_of_options\"=3; \"options\"=(vec { \"option1\"; \"option2\"; \"option3\" }); \
-            \"pollClosing\"=\"${DATE}\"})"
+            \"pollClosingDate\"=\"${DATE}\"})"
     [[ "$output" == *"Ok"* ]]
 }
 
 #bats test_tags=err
-@test "createPoll Maximum number of polls reached" {
+@test "createPoll MaxPollsReached" {
     dfx identity use default 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle createPoll "(record {\"name\"=\"Poll4\"; \
             \"description\"=\"Poll4\"; \"no_of_options\"=3; \"options\"=(vec { \"option1\"; \"option2\"; \"option3\" }); \
-            \"pollClosing\"=\"${DATE}\"})"
+            \"pollClosingDate\"=\"${DATE}\"})"
     [[ "$output" == *"Err = \"Maximum number of polls reached."* ]]
 }
 
 #bats test_tags=err
-@test "getPollByName Poll name not found" {
+@test "getPollByName PollNotFound" {
     dfx identity use default 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle getPollByName "Poll4"
-    [[ "$output" == *"Err = \"Poll "* ]]
+    [[ "$output" == *"Err = \"Poll not found."* ]]
 }
 
 #bats test_tags=ok
@@ -90,10 +90,10 @@ run_wrapper() {
 }
 
 #bats test_tags=err
-@test "registerVoterToPoll Poll name not found" {
+@test "registerVoterToPoll PollNotFound" {
     dfx identity use default 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle registerVoterToPoll "(\"Poll4\", \"user0\")"
-    [[ "$output" == *"Err = \"Poll "* ]]
+    [[ "$output" == *"Err = \"Poll not found."* ]]
 }
 
 #bats test_tags=ok
@@ -104,17 +104,17 @@ run_wrapper() {
 }
 
 #bats test_tags=err
-@test "registerVoterToPoll Voter name is already in use" {
+@test "registerVoterToPoll VoterAlreadyExists" {
     dfx identity use default 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle registerVoterToPoll "(\"Poll1\", \"user0\")"
-    [[ "$output" == *"Err = \"Voter "* ]]
+    [[ "$output" == *"Err = \"Voter already in use."* ]]
 }
 
 #bats test_tags=err
-@test "registerVoterToPoll Voter principal is already in use" {
+@test "registerVoterToPoll VoterAlreadyRegistered" {
     dfx identity use default 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle registerVoterToPoll "(\"Poll1\", \"user1\")"
-    [[ "$output" == *"Err = \"Voter "* ]]
+    [[ "$output" == *"Err = \"Voter principal is already in use."* ]]
 }
 
 #bats test_tags=ok
@@ -153,31 +153,31 @@ run_wrapper() {
 }
 
 #bats test_tags=err
-@test "changeVoterContribution The owner of the poll cannot change his/her own contribution" {
+@test "changeVoterContribution OwnerCannotChangeContribution" {
     dfx identity use default 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle changeVoterContribution "(\"Poll1\", \"user0\", 1.1)"
-    [[ "$output" == *"Err = \"The owner of the poll cannot change his/her own contribution."* ]]
+    [[ "$output" == *"Err = \"The owner of the poll cannot change their own contribution."* ]]
 }
 
 #bats test_tags=err
-@test "changeVoterContribution Caller is not the owner of the poll" {
+@test "changeVoterContribution CallerNotPollOwner" {
     dfx identity use user1 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle changeVoterContribution "(\"Poll1\", \"user1\", 1.1)"
-    [[ "$output" == *"Err = \"Caller is not the owner of the poll "* ]]
+    [[ "$output" == *"Err = \"Caller is not the owner of the poll."* ]]
 }
 
 #bats test_tags=err
-@test "changeVoterContribution Voter name not found" {
+@test "changeVoterContribution VoterNotRegistered" {
     dfx identity use default 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle changeVoterContribution "(\"Poll1\", \"user4\", 1.1)"
-    [[ "$output" == *"Err = \"Voter "* ]]
+    [[ "$output" == *"Err = \"Voter not found."* ]]
 }
 
 #bats test_tags=err
-@test "changeVoterContribution Poll name not found" {
+@test "changeVoterContribution PollNotFound" {
     dfx identity use default 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle changeVoterContribution "(\"Poll4\", \"user1\", 1.1)"
-    [[ "$output" == *"Err = \"Poll "* ]]
+    [[ "$output" == *"Err = \"Poll not found."* ]]
 }
 
 #bats test_tags=ok
@@ -188,31 +188,31 @@ run_wrapper() {
 }
 
 #bats test_tags=err
-@test "voteToPoll Poll name not found" {
+@test "voteToPoll PollNotFound" {
     dfx identity use user1 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle voteToPoll "(\"Poll4\", \"user4\", \"option1\")"
-    [[ "$output" == *"Err = \"Poll "* ]]
+    [[ "$output" == *"Err = \"Poll not found."* ]]
 }
 
 #bats test_tags=err
-@test "voteToPoll Voter name not found" {
+@test "voteToPoll VoterNotRegistered" {
     dfx identity use user1 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle voteToPoll "(\"Poll1\", \"user4\", \"option1\")"
-    [[ "$output" == *"Err = \"Voter "* ]]
+    [[ "$output" == *"Err = \"Voter not found."* ]]
 }
 
 #bats test_tags=err
-@test "voteToPoll The registered principal and voter's principal are different" {
+@test "voteToPoll UnauthorizedVoter" {
     dfx identity use default 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle voteToPoll "(\"Poll1\", \"user1\", \"option1\")"
     [[ "$output" == *"Err = \"The registered principal and voter\'s principal are different."* ]]
 }
 
 #bats test_tags=err
-@test "voteToPoll Option name not found." {
+@test "voteToPoll OptionNotFound" {
     dfx identity use user1 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle voteToPoll "(\"Poll1\", \"user1\", \"option4\")"
-    [[ "$output" == *"Err = \"Option "* ]]
+    [[ "$output" == *"Err = \"Option not found."* ]]
 }
 
 #bats test_tags=ok
@@ -244,7 +244,7 @@ run_wrapper() {
 }
 
 #bats test_tags=err
-@test "getVotingResult It's before the voting deadline" {
+@test "getVotingResult BeforeDeadline" {
     dfx identity use user1 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle getVotingResult "Poll1"
     [[ "$output" == *"Err = \"It\'s before the voting deadline."* ]]
@@ -260,21 +260,21 @@ run_wrapper() {
 }
 
 #bats test_tags=err
-@test "getVotingResult Poll name not found" {
+@test "getVotingResult PollNotFound" {
     dfx identity use user1 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle getVotingResult "Poll4"
-    [[ "$output" == *"Err = \"Poll "* ]]
+    [[ "$output" == *"Err = \"Poll not found."* ]]
 }
 
 #bats test_tags=err
-@test "getVotingResult Only the voter and the owner of the poll can see voting results" {
+@test "getVotingResult UnauthorizedView" {
     dfx identity use anonymous 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle getVotingResult "Poll1"
     [[ "$output" == *"Err = \"Only the voter and the owner of the poll can see voting results."* ]]
 }
 
 #bats test_tags=err
-@test "voteToPoll Voting is closed" {
+@test "voteToPoll VotingClosed" {
     dfx identity use user1 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle voteToPoll "(\"Poll1\", \"user1\", \"option1\")"
     [[ "$output" == *"Err = \"Voting is closed."* ]]

@@ -7,7 +7,9 @@ enum PollError {
   OptionLengthMismatch = "The length of options and no_of_options are different.",
   PollNotFound = "Poll not found.",
   VoterAlreadyExists = "Voter already in use.",
+  VoterAlreadyRegistered = "Voter principal is already in use.",
   VoterNotRegistered = "Voter not found.",
+  UnauthorizedVoter = "The registered principal and voter's principal are different.",
   CallerNotPollOwner = "Caller is not the owner of the poll.",
   OwnerCannotChangeContribution = "The owner of the poll cannot change their own contribution.",
   OptionNotFound = "Option not found.",
@@ -118,12 +120,12 @@ export function registerVoterToPoll(pollname: string, votername: string): Result
     Some: (poll) => {
       let index = poll.voters.findIndex((elem) => elem.name === votername);
       if (index !== -1) {
-        return Result.Err(VoterError.VoterAlreadyExists);
+        return Result.Err<Voter, string>(PollError.VoterAlreadyExists);
       }
 
       index = poll.voters.findIndex((elem) => elem.voter.toString() === ic.caller().toString());
       if (index !== -1) {
-        return Result.Err(VoterError.VoterAlreadyRegistered);
+        return Result.Err<Voter, string>(PollError.VoterAlreadyRegistered);
       }
 
       let voter: Voter = {
@@ -135,7 +137,7 @@ export function registerVoterToPoll(pollname: string, votername: string): Result
       Polls.insert(pollname, poll);
       return Result.Ok<Voter, string>(voter);
     },
-    None: () => { return Result.Err(VoterError.PollNotFound); },
+    None: () => { return Result.Err<Voter, string>(PollError.PollNotFound); },
   });
 }
 
@@ -144,17 +146,17 @@ export function changeVoterContribution(pollname: string, votername: string, con
   return match(Polls.get(pollname), {
     Some: (poll) => {
       if (poll.owner.toString() !== ic.caller().toString()) {
-        return Result.Err(VoterError.CallerNotPollOwner);
+        return Result.Err<Voter, string>(PollError.CallerNotPollOwner);
       }
 
       let index = poll.voters.findIndex((elem) => elem.name === votername);
       if (index === -1) {
-        return Result.Err(VoterError.VoterNotRegistered);
+        return Result.Err<Voter, string>(PollError.VoterNotRegistered);
       }
 
       let voter = poll.voters[index];
       if (voter.voter.toString() === ic.caller().toString()) {
-        return Result.Err(VoterError.OwnerCannotChangeContribution);
+        return Result.Err<Voter, string>(PollError.OwnerCannotChangeContribution);
       }
 
       voter.contribution = contribution;
@@ -162,7 +164,7 @@ export function changeVoterContribution(pollname: string, votername: string, con
       Polls.insert(pollname, poll);
       return Result.Ok<Voter, string>(voter);
     },
-    None: () => { return Result.Err(VoterError.PollNotFound); },
+    None: () => { return Result.Err<Voter, string>(PollError.PollNotFound); },
   });
 }
 
@@ -171,22 +173,22 @@ export function voteToPoll(pollname: string, votername: string, option: string):
   return match(Polls.get(pollname), {
     Some: (poll) => {
       if (poll.pollClosingAt <= ic.time()) {
-        return Result.Err(VotingError.VotingClosed);
+        return Result.Err<VotingDetail, string>(PollError.VotingClosed);
       }
 
       let index = poll.voters.findIndex((elem) => elem.name === votername);
       if (index === -1) {
-        return Result.Err(VotingError.VoterNotRegistered);
+        return Result.Err<VotingDetail, string>(PollError.VoterNotRegistered);
       }
 
       let voter = poll.voters[index];
       if (voter.voter.toString() !== ic.caller().toString()) {
-        return Result.Err(VotingError.UnauthorizedVoter);
+        return Result.Err<VotingDetail, string>(PollError.UnauthorizedVoter);
       }
 
       index = poll.options.findIndex((elem) => elem === option);
       if (index === -1) {
-        return Result.Err(VotingError.OptionNotFound);
+        return Result.Err<VotingDetail, string>(PollError.OptionNotFound);
       }
 
       let votingDetails: VotingDetail = {
@@ -198,7 +200,7 @@ export function voteToPoll(pollname: string, votername: string, option: string):
       Polls.insert(pollname, poll);
       return Result.Ok<VotingDetail, string>(votingDetails);
     },
-    None: () => { return Result.Err(VotingError.PollNotFound); },
+    None: () => { return Result.Err<VotingDetail, string>(PollError.PollNotFound); },
   });
 }
 
@@ -207,13 +209,13 @@ export function getVotingResult(name: string): Result<Vec<string>, string> {
   return match(Polls.get(name), {
     Some: (poll) => {
       if (ic.time() < poll.pollClosingAt) {
-        return Result.Err(VotingError.BeforeDeadline);
+        return Result.Err<Vec<string>, string>(PollError.BeforeDeadline);
       }
 
       let index = poll.voters.findIndex((elem) => elem.voter.toString() === ic.caller().toString());
       if (index === -1) {
         if (poll.owner.toString() !== ic.caller().toString()) {
-          return Result.Err(VotingError.UnauthorizedView);
+          return Result.Err<Vec<string>, string>(PollError.UnauthorizedView);
         }
       }
 
@@ -226,6 +228,6 @@ export function getVotingResult(name: string): Result<Vec<string>, string> {
       }
       return Result.Ok<Vec<string>, string>(results);
     },
-    None: () => { return Result.Err(VotingError.PollNotFound); },
+    None: () => { return Result.Err<Vec<string>, string>(PollError.PollNotFound); },
   });
 }

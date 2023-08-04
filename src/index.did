@@ -9,7 +9,7 @@ type Poll = record {
   options : vec text;
 };
 type PollPayload = record {
-  pollClosing : text;
+  pollClosingDate : text;
   name : text;
   description : text;
   no_of_options : int32;
