@@ -16,25 +16,16 @@ run_wrapper() {
 @test "createPoll InvalidDateFormat" {
     dfx identity use default 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle createPoll "(record {\"name\"=\"Poll1\"; \
-            \"description\"=\"Poll1\"; \"no_of_options\"=3; \"options\"=(vec { \"option1\"; \"option2\"; \
-            \"option3\" }); \"pollClosingDate\"=\"2023-07-32T01:02:03+09:00\"})"
+            \"description\"=\"Poll1\"; \"options\"=(vec { \"option1\"; \"option2\"; \"option3\" }); \
+            \"pollClosingDate\"=\"2023-07-32T01:02:03+09:00\"})"
     [[ "$output" == *"Err = \"Date formatting is invalid."* ]]
-}
-
-#bats test_tags=err
-@test "createPoll OptionLengthMismatch" {
-    dfx identity use default 3>&-
-    run_wrapper dfx canister call contribution_weighted_voting_azle createPoll "(record {\"name\"=\"Poll1\"; \
-            \"description\"=\"Poll1\"; \"no_of_options\"=3; \"options\"=(vec { \"option1\"; \"option2\" }); \
-            \"pollClosingDate\"=\"${DATE}\"})"
-    [[ "$output" == *"Err = \"The length of options and no_of_options are different."* ]]
 }
 
 #bats test_tags=ok
 @test "createPoll Poll1 ..." {
     dfx identity use default 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle createPoll "(record {\"name\"=\"Poll1\"; \
-            \"description\"=\"Poll1\"; \"no_of_options\"=3; \"options\"=(vec { \"option1\"; \"option2\"; \"option3\" }); \
+            \"description\"=\"Poll1\"; \"options\"=(vec { \"option1\"; \"option2\"; \"option3\" }); \
             \"pollClosingDate\"=\"${DATE}\"})"
     [[ "$output" == *"Ok"* ]]
 }
@@ -43,7 +34,7 @@ run_wrapper() {
 @test "createPoll PollAlreadyExists" {
     dfx identity use default 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle createPoll "(record {\"name\"=\"Poll1\"; \
-            \"description\"=\"Poll1\"; \"no_of_options\"=3; \"options\"=(vec { \"option1\"; \"option2\"; \"option3\" }); \
+            \"description\"=\"Poll1\"; \"options\"=(vec { \"option1\"; \"option2\"; \"option3\" }); \
             \"pollClosingDate\"=\"${DATE}\"})"
     [[ "$output" == *"Err = \"Poll "* ]]
 }
@@ -52,7 +43,7 @@ run_wrapper() {
 @test "createPoll Poll2 ..." {
     dfx identity use user1 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle createPoll "(record {\"name\"=\"Poll2\"; \
-            \"description\"=\"Poll2\"; \"no_of_options\"=3; \"options\"=(vec { \"option1\"; \"option2\"; \"option3\" }); \
+            \"description\"=\"Poll2\"; \"options\"=(vec { \"option1\"; \"option2\"; \"option3\" }); \
             \"pollClosingDate\"=\"${DATE}\"})"
     [[ "$output" == *"Ok"* ]]
 }
@@ -61,7 +52,7 @@ run_wrapper() {
 @test "createPoll Poll3 ..." {
     dfx identity use default 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle createPoll "(record {\"name\"=\"Poll3\"; \
-            \"description\"=\"Poll3\"; \"no_of_options\"=3; \"options\"=(vec { \"option1\"; \"option2\"; \"option3\" }); \
+            \"description\"=\"Poll3\"; \"options\"=(vec { \"option1\"; \"option2\"; \"option3\" }); \
             \"pollClosingDate\"=\"${DATE}\"})"
     [[ "$output" == *"Ok"* ]]
 }
@@ -70,7 +61,7 @@ run_wrapper() {
 @test "createPoll MaxPollsReached" {
     dfx identity use default 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle createPoll "(record {\"name\"=\"Poll4\"; \
-            \"description\"=\"Poll4\"; \"no_of_options\"=3; \"options\"=(vec { \"option1\"; \"option2\"; \"option3\" }); \
+            \"description\"=\"Poll4\"; \"options\"=(vec { \"option1\"; \"option2\"; \"option3\" }); \
             \"pollClosingDate\"=\"${DATE}\"})"
     [[ "$output" == *"Err = \"Maximum number of polls reached."* ]]
 }

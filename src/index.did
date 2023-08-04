@@ -5,14 +5,12 @@ type Poll = record {
   description : text;
   voters : vec Voter;
   pollClosingAt : nat64;
-  no_of_options : int32;
   options : vec text;
 };
 type PollPayload = record {
   pollClosingDate : text;
   name : text;
   description : text;
-  no_of_options : int32;
   options : vec text;
 };
 type Voter = record { voter : principal; name : text; contribution : float32 };

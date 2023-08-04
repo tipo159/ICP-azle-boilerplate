@@ -4,7 +4,6 @@ enum PollError {
   MaxPollsReached = "Maximum number of polls reached.",
   InvalidDateFormat = "Date formatting is invalid.",
   PollAlreadyExists = "Poll already in use.",
-  OptionLengthMismatch = "The length of options and no_of_options are different.",
   PollNotFound = "Poll not found.",
   VoterAlreadyExists = "Voter already in use.",
   VoterAlreadyRegistered = "Voter principal is already in use.",
@@ -22,7 +21,6 @@ type Poll = Record<{
   name: string;
   owner: Principal;
   description: string;
-  no_of_options: int32;
   options: Vec<string>;
   pollClosingAt: nat64;
   voters: Vec<Voter>;
@@ -44,7 +42,6 @@ type VotingDetail = Record<{
 type PollPayload = Record<{
   name: string;
   description: string;
-  no_of_options: int32;
   options: Vec<string>;
   pollClosingDate: string;
 }>;
@@ -69,10 +66,6 @@ export function createPoll(payload: PollPayload): Result<Poll, string> {
 
   if (Polls.containsKey(payload.name)) {
     return Result.Err(PollError.PollAlreadyExists);
-  }
-
-  if (payload.no_of_options !== payload.options.length) {
-    return Result.Err(PollError.OptionLengthMismatch);
   }
 
   const Poll: Poll = {
@@ -219,11 +212,11 @@ export function getVotingResult(name: string): Result<Vec<string>, string> {
         }
       }
 
-      let no_of_votes: float32[] = new Array(poll.no_of_options);
+      let no_of_votes: float32[] = new Array(poll.options.length);
       no_of_votes.fill(0.0);
       poll.votingDetails.forEach((elem) => no_of_votes[elem.option] += elem.contribution);
-      let results: Vec<string> = new Array(poll.no_of_options);
-      for (let index = 0; index < poll.no_of_options; index++) {
+      let results: Vec<string> = new Array(poll.options.length);
+      for (let index = 0; index < poll.options.length; index++) {
         results[index] = `${poll.options[index]}: ${no_of_votes[index].toFixed(2)}`
       }
       return Result.Ok<Vec<string>, string>(results);
