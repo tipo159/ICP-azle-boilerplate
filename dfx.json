@@ -1,7 +1,6 @@
 {
   "canisters": {
     "contribution_weighted_voting_azle": {
-      "main": "src/index.ts",
       "type": "custom",
       "build": "npx azle contribution_weighted_voting_azle",
       "root": "src",
