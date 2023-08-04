@@ -2,7 +2,6 @@ import { $query, $update, ic, int32, float32, match, nat64, Principal, Record, R
 
 enum PollError {
   MaxPollsReached = "Maximum number of polls reached.",
-  PollClosingTimeMustFuture = "Poll closing time must be in the future.",
   InvalidDateFormat = "Date formatting is invalid.",
   PollAlreadyExists = "Poll already in use.",
   OptionLengthMismatch = "The length of options and no_of_options are different.",
@@ -21,9 +20,9 @@ type Poll = Record<{
   name: string;
   owner: Principal;
   description: string;
-  no_of_options: number;
+  no_of_options: int32;
   options: Vec<string>;
-  pollClosingAt: bigint;
+  pollClosingAt: nat64;
   voters: Vec<Voter>;
   votingDetails: Vec<VotingDetail>;
 }>;
@@ -31,19 +30,19 @@ type Poll = Record<{
 type Voter = Record<{
   name: string;
   voter: Principal;
-  contribution: number;
+  contribution: float32;
 }>;
 
 type VotingDetail = Record<{
   name: string;
-  option: number;
-  contribution: number;
+  option: int32;
+  contribution: float32;
 }>;
 
 type PollPayload = Record<{
   name: string;
   description: string;
-  no_of_options: number;
+  no_of_options: int32;
   options: Vec<string>;
   pollClosingDate: string;
 }>;
@@ -59,9 +58,11 @@ export function createPoll(payload: PollPayload): Result<Poll, string> {
     return Result.Err(PollError.MaxPollsReached);
   }
 
-  const pollClosingAt = BigInt(parseDate(payload.pollClosing));
-  if (pollClosingAt <= BigInt(Date.now())) {
-    return Result.Err(PollErrr.PollClosingTimeMustFuture);
+  let pollClosingAt = Date.parse(payload.pollClosingDate);
+  if (isNaN(pollClosingAt)) {
+    return Result.Err(PollError.InvalidDateFormat);
+  } else {
+    pollClosingAt *= 1_000_000;
   }
 
   if (Polls.containsKey(payload.name)) {
@@ -74,7 +75,7 @@ export function createPoll(payload: PollPayload): Result<Poll, string> {
 
   const Poll: Poll = {
     owner: ic.caller(),
-    pollClosingAt,
+    pollClosingAt: BigInt(pollClosingAt),
     voters: [],
     votingDetails: [],
     ...payload
@@ -88,8 +89,8 @@ export function getPollByName(name: string): Result<Poll, string> {
   return match(Polls.get(name), {
     Some: (poll) => {
       if (poll.owner.toString() !== ic.caller().toString()) {
-        // Hide voters and voting details for non-owners
-        return Result.Ok<Poll, string>({ ...poll, voters: [], votingDetails: [] });
+        poll.voters = [];
+        poll.votingDetails = [];
       }
       return Result.Ok<Poll, string>(poll);
     },
@@ -99,128 +100,132 @@ export function getPollByName(name: string): Result<Poll, string> {
 
 $query
 export function getAllPolls(): Vec<Poll> {
-  const callerPrincipal = ic.caller().toString();
-  const polls = Polls.values().map((poll) => {
-    if (poll.owner.toString() !== callerPrincipal) {
-      // Hide voters and voting details for non-owners
-      return { ...poll, voters: [], votingDetails: [] };
+  let polls: Poll[] = Polls.values();
+  let result: Vec<Poll> = [];
+  for (let index: int32 = 0; index < polls.length; index++) {
+    if (polls[index].owner.toString() !== ic.caller().toString()) {
+      polls[index].voters = [];
+      polls[index].votingDetails = [];
     }
-    return poll;
-  });
-  return polls;
+    result[index] = polls[index];
+  }
+  return result;
 }
 
 $update
 export function registerVoterToPoll(pollname: string, votername: string): Result<Voter, string> {
-  const poll = Polls.get(pollname);
-  if (poll) {
-    const voterIndex = poll.voters.findIndex((elem) => elem.name === votername);
-    if (voterIndex !== -1) {
-      return Result.Err(VoterError.VoterAlreadyExists);
-    }
+  return match(Polls.get(pollname), {
+    Some: (poll) => {
+      let index = poll.voters.findIndex((elem) => elem.name === votername);
+      if (index !== -1) {
+        return Result.Err(VoterError.VoterAlreadyExists);
+      }
 
-    const callerPrincipal = ic.caller().toString();
-    const callerIndex = poll.voters.findIndex((elem) => elem.voter.toString() === callerPrincipal);
-    if (callerIndex !== -1) {
-      return Result.Err(VoterError.VoterAlreadyRegistered);
-    }
+      index = poll.voters.findIndex((elem) => elem.voter.toString() === ic.caller().toString());
+      if (index !== -1) {
+        return Result.Err(VoterError.VoterAlreadyRegistered);
+      }
 
-    const voter: Voter = {
-      name: votername,
-      voter: ic.caller(),
-      contribution: 1.0,
-    };
-    poll.voters.push(voter);
-    const _ = Polls.insert(pollname, poll);
-    return Result.Ok<Voter, string>(voter);
-  }
-  return Result.Err(VoterError.PollNotFound);
+      let voter: Voter = {
+        name: votername,
+        voter: ic.caller(),
+        contribution: 1.0,
+      }
+      poll.voters.push(voter);
+      Polls.insert(pollname, poll);
+      return Result.Ok<Voter, string>(voter);
+    },
+    None: () => { return Result.Err(VoterError.PollNotFound); },
+  });
 }
 
 $update
 export function changeVoterContribution(pollname: string, votername: string, contribution: float32): Result<Voter, string> {
-  const poll = Polls.get(pollname);
-  if (poll) {
-    if (poll.owner.toString() !== ic.caller().toString()) {
-      return Result.Err(VoterError.CallerNotPollOwner);
-    }
+  return match(Polls.get(pollname), {
+    Some: (poll) => {
+      if (poll.owner.toString() !== ic.caller().toString()) {
+        return Result.Err(VoterError.CallerNotPollOwner);
+      }
 
-    const voterIndex = poll.voters.findIndex((elem) => elem.name === votername);
-    if (voterIndex === -1) {
-      return Result.Err(VoterError.VoterNotRegistered);
-    }
+      let index = poll.voters.findIndex((elem) => elem.name === votername);
+      if (index === -1) {
+        return Result.Err(VoterError.VoterNotRegistered);
+      }
 
-    const voter = poll.voters[voterIndex];
-    if (voter.voter.toString() === ic.caller().toString()) {
-      return Result.Err(VoterError.OwnerCannotChangeContribution);
-    }
+      let voter = poll.voters[index];
+      if (voter.voter.toString() === ic.caller().toString()) {
+        return Result.Err(VoterError.OwnerCannotChangeContribution);
+      }
 
-    voter.contribution = contribution;
-    poll.voters[voterIndex] = voter;
-    Polls.insert(pollname, poll);
-    return Result.Ok<Voter, string>(voter);
-  }
-  return Result.Err(VoterError.PollNotFound);
+      voter.contribution = contribution;
+      poll.voters[index] = voter;
+      Polls.insert(pollname, poll);
+      return Result.Ok<Voter, string>(voter);
+    },
+    None: () => { return Result.Err(VoterError.PollNotFound); },
+  });
 }
 
 $update
 export function voteToPoll(pollname: string, votername: string, option: string): Result<VotingDetail, string> {
-  const poll = Polls.get(pollname);
-  if (poll) {
-    if (poll.pollClosingAt <= BigInt(Date.now())) {
-      return Result.Err(VotingError.VotingClosed);
-    }
+  return match(Polls.get(pollname), {
+    Some: (poll) => {
+      if (poll.pollClosingAt <= ic.time()) {
+        return Result.Err(VotingError.VotingClosed);
+      }
 
-    const voterIndex = poll.voters.findIndex((elem) => elem.name === votername);
-    if (voterIndex === -1) {
-      return Result.Err(VotingError.VoterNotRegistered);
-    }
+      let index = poll.voters.findIndex((elem) => elem.name === votername);
+      if (index === -1) {
+        return Result.Err(VotingError.VoterNotRegistered);
+      }
 
-    const callerPrincipal = ic.caller().toString();
-    if (poll.voters[voterIndex].voter.toString() !== callerPrincipal) {
-      return Result.Err(VotingError.UnauthorizedVoter);
-    }
+      let voter = poll.voters[index];
+      if (voter.voter.toString() !== ic.caller().toString()) {
+        return Result.Err(VotingError.UnauthorizedVoter);
+      }
 
-    const optionIndex = poll.options.findIndex((elem) => elem === option);
-    if (optionIndex === -1) {
-      return Result.Err(VotingError.OptionNotFound);
-    }
+      index = poll.options.findIndex((elem) => elem === option);
+      if (index === -1) {
+        return Result.Err(VotingError.OptionNotFound);
+      }
 
-    const votingDetails: VotingDetail = {
-      name: votername,
-      option: optionIndex,
-      contribution: poll.voters[voterIndex].contribution,
-    };
-    poll.votingDetails.push(votingDetails);
-    Polls.insert(pollname, poll);
-    return Result.Ok<VotingDetail, string>(votingDetails);
-  }
-  return Result.Err(VotingError.PollNotFound);
+      let votingDetails: VotingDetail = {
+        name: votername,
+        option: index,
+        contribution: voter.contribution,
+      }
+      poll.votingDetails.push(votingDetails);
+      Polls.insert(pollname, poll);
+      return Result.Ok<VotingDetail, string>(votingDetails);
+    },
+    None: () => { return Result.Err(VotingError.PollNotFound); },
+  });
 }
 
 $query
 export function getVotingResult(name: string): Result<Vec<string>, string> {
-  const poll = Polls.get(name);
-  if (poll) {
-    if (BigInt(Date.now()) < poll.pollClosingAt) {
+  return match(Polls.get(name), {
+    Some: (poll) => {
+      if (ic.time() < poll.pollClosingAt) {
         return Result.Err(VotingError.BeforeDeadline);
       }
 
-    let index = poll.voters.findIndex((elem) => elem.voter.toString() === ic.caller().toString());
-    if (index === -1) {
-      if (poll.owner.toString() !== ic.caller().toString()) {
-        return Result.Err(VotingError.UnauthorizedView);
+      let index = poll.voters.findIndex((elem) => elem.voter.toString() === ic.caller().toString());
+      if (index === -1) {
+        if (poll.owner.toString() !== ic.caller().toString()) {
+          return Result.Err(VotingError.UnauthorizedView);
+        }
       }
-    }
 
-    let no_of_votes: number[] = new Array(poll.no_of_options);
-    no_of_votes.fill(0.0);
-    poll.votingDetails.forEach((elem) => no_of_votes[elem.option] += elem.contribution);
-    let results: Vec<string> = new Array(poll.no_of_options);
-    for (let index = 0; index < poll.no_of_options; index++) {
-      results[index] = `${poll.options[index]}: ${no_of_votes[index].toFixed(2)}`
-    }
-    return Result.Ok<Vec<string>, string>(results);
-  }
-  return Result.Err(VotingError.PollNotFound);
+      let no_of_votes: float32[] = new Array(poll.no_of_options);
+      no_of_votes.fill(0.0);
+      poll.votingDetails.forEach((elem) => no_of_votes[elem.option] += elem.contribution);
+      let results: Vec<string> = new Array(poll.no_of_options);
+      for (let index = 0; index < poll.no_of_options; index++) {
+        results[index] = `${poll.options[index]}: ${no_of_votes[index].toFixed(2)}`
+      }
+      return Result.Ok<Vec<string>, string>(results);
+    },
+    None: () => { return Result.Err(VotingError.PollNotFound); },
+  });
 }
