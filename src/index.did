@@ -1,6 +1,7 @@
 type Poll = record {
   votingDetails : vec VotingDetail;
   owner : principal;
+  pollClosingDate : text;
   name : text;
   description : text;
   voters : vec Voter;

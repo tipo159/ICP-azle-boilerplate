@@ -20,5 +20,4 @@ setup_suite() {
 
     export DELAY=60
     export DATE=`date -Iseconds -v+${DELAY}S`
-    export SECONDS=`date -v+${DELAY}S +%s`
 }

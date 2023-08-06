@@ -1,11 +1,15 @@
 #!/usr/bin/env bats
 
 wait_until() {
-    local seconds=$1
+    local date=$1
 
-    while [[ `date +%s` -le ${seconds} ]]; do
+    echo "wait_until(" $date ")" >& 3
+    echo "start:" `date -Iseconds` >& 3
+    while [[ `date -Iseconds` != ${date} ]]; do
         sleep 1 3>&-
     done
+    sleep 1 3>&-
+    echo "end:" `date -Iseconds` >& 3
 }
 
 run_wrapper() {
@@ -19,6 +23,15 @@ run_wrapper() {
             \"description\"=\"Poll1\"; \"options\"=(vec { \"option1\"; \"option2\"; \"option3\" }); \
             \"pollClosingDate\"=\"2023-07-32T01:02:03+09:00\"})"
     [[ "$output" == *"Err = \"Date formatting is invalid."* ]]
+}
+
+#bats test_tags=err
+@test "createPoll PollClosingTimeMustFuture" {
+    dfx identity use default 3>&-
+    run_wrapper dfx canister call contribution_weighted_voting_azle createPoll "(record {\"name\"=\"Poll1\"; \
+            \"description\"=\"Poll1\"; \"options\"=(vec { \"option1\"; \"option2\"; \"option3\" }); \
+            \"pollClosingDate\"=\"2023-01-01T00:00:00+09:00\"})"
+    [[ "$output" == *"Err = \"Poll closing time must be in the future."* ]]
 }
 
 #bats test_tags=ok
@@ -243,7 +256,7 @@ run_wrapper() {
 
 #bats test_tags=ok
 @test "getVotingResult Poll1" {
-    wait_until ${SECONDS}
+    wait_until ${DATE}
 
     dfx identity use user1 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle getVotingResult "Poll1"

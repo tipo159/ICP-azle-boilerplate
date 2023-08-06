@@ -1,8 +1,12 @@
 import { $query, $update, ic, int32, float32, match, nat64, Principal, Record, Result, StableBTreeMap, Vec } from 'azle';
 
+// MAX_POLLS is set to 3 to facilitate testing.
+const MAX_POLLS = BigInt(3);
+
 enum PollError {
   MaxPollsReached = "Maximum number of polls reached.",
   InvalidDateFormat = "Date formatting is invalid.",
+  PollClosingTimeMustFuture = "Poll closing time must be in the future.",
   PollAlreadyExists = "Poll already in use.",
   PollNotFound = "Poll not found.",
   VoterAlreadyExists = "Voter already in use.",
@@ -22,6 +26,7 @@ type Poll = Record<{
   owner: Principal;
   description: string;
   options: Vec<string>;
+  pollClosingDate: string;
   pollClosingAt: nat64;
   voters: Vec<Voter>;
   votingDetails: Vec<VotingDetail>;
@@ -46,9 +51,6 @@ type PollPayload = Record<{
   pollClosingDate: string;
 }>;
 
-// MAX_POLLS is set to 3 to facilitate testing.
-const MAX_POLLS = BigInt(3);
-
 let Polls = new StableBTreeMap<string, Poll>(0, 100, 1000);
 
 $update
@@ -62,6 +64,9 @@ export function createPoll(payload: PollPayload): Result<Poll, string> {
     return Result.Err(PollError.InvalidDateFormat);
   } else {
     pollClosingAt *= 1_000_000;
+    if (pollClosingAt <= ic.time()) {
+      return Result.Err(PollError.PollClosingTimeMustFuture);
+    }
   }
 
   if (Polls.containsKey(payload.name)) {
