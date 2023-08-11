@@ -5,7 +5,6 @@ type Poll = record {
   name : text;
   description : text;
   voters : vec Voter;
-  pollClosingAt : nat64;
   options : vec text;
 };
 type PollPayload = record {

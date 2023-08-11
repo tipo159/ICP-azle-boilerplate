@@ -87,8 +87,7 @@ export function getPollByName(name: string): Result<Poll, string> {
   return match(Polls.get(name), {
     Some: (poll) => {
       if (poll.owner.toString() !== ic.caller().toString()) {
-        poll.voters = [];
-        poll.votingDetails = [];
+        return Result.Ok<Poll, string>({...poll, voters: [], votingDetails: []});
       }
       return Result.Ok<Poll, string>(poll);
     },
@@ -98,16 +97,15 @@ export function getPollByName(name: string): Result<Poll, string> {
 
 $query
 export function getAllPolls(): Vec<Poll> {
-  let polls: Poll[] = Polls.values();
-  let result: Vec<Poll> = [];
-  for (let index: int32 = 0; index < polls.length; index++) {
-    if (polls[index].owner.toString() !== ic.caller().toString()) {
-      polls[index].voters = [];
-      polls[index].votingDetails = [];
+  const callerPrincipal = ic.caller().toString();
+  const polls = Polls.values().map((poll) => {
+    if (poll.owner.toString() !== callerPrincipal) {
+      // Hide voters and voting details for non-owners
+      return { ...poll, voters: [], votingDetails: [] };
     }
-    result[index] = polls[index];
-  }
-  return result;
+    return poll;
+  });
+  return polls;
 }
 
 $update
@@ -173,9 +171,6 @@ export function voteToPoll(pollname: string, votername: string, option: string):
         return Result.Err<VotingDetail, string>(PollError.InvalidDateFormat);
       } else {
         pollClosingAt *= 1_000_000;
-        if (pollClosingAt <= ic.time()) {
-          return Result.Err<VotingDetail, string>(PollError.PollClosingTimeMustFuture);
-        }
       }
       if (pollClosingAt <= ic.time()) {
         return Result.Err<VotingDetail, string>(PollError.VotingClosed);
@@ -218,9 +213,6 @@ export function getVotingResult(name: string): Result<Vec<string>, string> {
         return Result.Err<Vec<string>, string>(PollError.InvalidDateFormat);
       } else {
         pollClosingAt *= 1_000_000;
-        if (pollClosingAt <= ic.time()) {
-          return Result.Err<Vec<string>, string>(PollError.PollClosingTimeMustFuture);
-        }
       }
       if (ic.time() < pollClosingAt) {
         return Result.Err<Vec<string>, string>(PollError.BeforeDeadline);
