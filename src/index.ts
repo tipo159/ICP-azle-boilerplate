@@ -27,7 +27,6 @@ type Poll = Record<{
   description: string;
   options: Vec<string>;
   pollClosingDate: string;
-  pollClosingAt: nat64;
   voters: Vec<Voter>;
   votingDetails: Vec<VotingDetail>;
 }>;
@@ -56,26 +55,25 @@ let Polls = new StableBTreeMap<string, Poll>(0, 100, 1000);
 $update
 export function createPoll(payload: PollPayload): Result<Poll, string> {
   if (Polls.len() === MAX_POLLS) {
-    return Result.Err(PollError.MaxPollsReached);
+    return Result.Err<Poll, string>(PollError.MaxPollsReached);
   }
 
   let pollClosingAt = Date.parse(payload.pollClosingDate);
   if (isNaN(pollClosingAt)) {
-    return Result.Err(PollError.InvalidDateFormat);
+    return Result.Err<Poll, string>(PollError.InvalidDateFormat);
   } else {
     pollClosingAt *= 1_000_000;
     if (pollClosingAt <= ic.time()) {
-      return Result.Err(PollError.PollClosingTimeMustFuture);
+      return Result.Err<Poll, string>(PollError.PollClosingTimeMustFuture);
     }
   }
 
   if (Polls.containsKey(payload.name)) {
-    return Result.Err(PollError.PollAlreadyExists);
+    return Result.Err<Poll, string>(PollError.PollAlreadyExists);
   }
 
   const Poll: Poll = {
     owner: ic.caller(),
-    pollClosingAt: BigInt(pollClosingAt),
     voters: [],
     votingDetails: [],
     ...payload
@@ -170,7 +168,16 @@ $update
 export function voteToPoll(pollname: string, votername: string, option: string): Result<VotingDetail, string> {
   return match(Polls.get(pollname), {
     Some: (poll) => {
-      if (poll.pollClosingAt <= ic.time()) {
+      let pollClosingAt = Date.parse(poll.pollClosingDate);
+      if (isNaN(pollClosingAt)) {
+        return Result.Err<VotingDetail, string>(PollError.InvalidDateFormat);
+      } else {
+        pollClosingAt *= 1_000_000;
+        if (pollClosingAt <= ic.time()) {
+          return Result.Err<VotingDetail, string>(PollError.PollClosingTimeMustFuture);
+        }
+      }
+      if (pollClosingAt <= ic.time()) {
         return Result.Err<VotingDetail, string>(PollError.VotingClosed);
       }
 
@@ -206,7 +213,16 @@ $query
 export function getVotingResult(name: string): Result<Vec<string>, string> {
   return match(Polls.get(name), {
     Some: (poll) => {
-      if (ic.time() < poll.pollClosingAt) {
+      let pollClosingAt = Date.parse(poll.pollClosingDate);
+      if (isNaN(pollClosingAt)) {
+        return Result.Err<Vec<string>, string>(PollError.InvalidDateFormat);
+      } else {
+        pollClosingAt *= 1_000_000;
+        if (pollClosingAt <= ic.time()) {
+          return Result.Err<Vec<string>, string>(PollError.PollClosingTimeMustFuture);
+        }
+      }
+      if (ic.time() < pollClosingAt) {
         return Result.Err<Vec<string>, string>(PollError.BeforeDeadline);
       }
 
