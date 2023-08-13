@@ -189,7 +189,7 @@ export function voteToPoll(pollname: string, votername: string, option: string):
         return Result.Err<VotingDetail, string>(PollError.OptionNotFound);
       }
 
-      let votingDetails: VotingDetail = {
+      const votingDetails: VotingDetail = {
         name: votername,
         option: index,
         contribution: voter.contribution,
@@ -240,7 +240,7 @@ export function removeExpiredPolls(overTime: int32): Vec<Poll> {
     let pollClosingAt = Date.parse(poll.pollClosingDate);
     // Confirmed that parse_from_rfc3339 succeeds in createPoll
     pollClosingAt *= 1_000_000;
-    if ((pollClosingAt + overTime * 1_000_000_000) <= ic.time()) {
+    if (pollClosingAt + overTime * 1_000_000_000 <= ic.time()) {
       Polls.remove(poll.name);
       polls.push(poll);
     }
