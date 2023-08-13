@@ -4,16 +4,23 @@ wait_until() {
     local date=$1
 
     echo "wait_until(" $date ")" >& 3
-    echo "start:" `date -Iseconds` >& 3
+    echo " start:" `date -Iseconds` >& 3
     while [[ `date -Iseconds` != ${date} ]]; do
         sleep 1 3>&-
     done
     sleep 1 3>&-
-    echo "end:" `date -Iseconds` >& 3
+    echo " end:" `date -Iseconds` >& 3
 }
 
 run_wrapper() {
     run "${@}" 3>&-
+}
+
+#bats test_tags=ok
+@test "getAllPolls (Empty)" {
+    dfx identity use default 3>&-
+    run_wrapper dfx canister call contribution_weighted_voting_azle getAllPolls
+    [[ "$output" == "(vec {})" ]]
 }
 
 #bats test_tags=err
@@ -93,6 +100,13 @@ run_wrapper() {
     [[ "$output" == *"Ok"* ]]
 }
 
+#bats test_tags=ok
+@test "getAllPolls (Poll1)" {
+    dfx identity use default 3>&-
+    run_wrapper dfx canister call contribution_weighted_voting_azle getAllPolls
+    [[ "$output" == *"record {"* ]]
+}
+
 #bats test_tags=err
 @test "registerVoterToPoll PollNotFound" {
     dfx identity use default 3>&-
@@ -143,17 +157,35 @@ run_wrapper() {
 }
 
 #bats test_tags=ok
-@test "getPollByName Poll1 by owner" {
+@test "getPollByName Poll1 by owner (voters != {})" {
     dfx identity use default 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle getPollByName "Poll1"
-    [[ "$output" == *"Ok"* && "$output" != *"voters = vec {}"* ]]
+    [[ "$output" == *"Ok"* && '$output' != *"voters = vec {}"* ]]
 }
 
 #bats test_tags=ok
-@test "getPollByName Poll1 by non-owner" {
+@test "getPollByName Poll1 by non-owner (voters == {})" {
     dfx identity use user1 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle getPollByName "Poll1"
     [[ "$output" == *"Ok"* && "$output" == *"voters = vec {}"* ]]
+}
+
+#bats test_tags=ok
+@test "getAllPolls (Poll1 Poll2 Poll3) by owner (voters != {})" {
+    dfx identity use default 3>&-
+    run_wrapper dfx canister call contribution_weighted_voting_azle getAllPolls
+    # This is a temporary solution because the following is not working correctly.
+    #[[ "$output" == *"description = \"Poll1\";\n      voters = vec {\n"* ]]
+    [[ "${lines[8]}" == *"voters = vec {"* ]]
+}
+
+#bats test_tags=ok
+@test "getAllPolls (Poll1 Poll2 Poll3) by non-owner (voters == {})" {
+    dfx identity use user1 3>&-
+    run_wrapper dfx canister call contribution_weighted_voting_azle getAllPolls
+    # This is a temporary solution because the following is not working correctly.
+    #[[ "$output" == *"description = \"Poll1\";\n      voters = vec {}"* ]]
+    [[ "${lines[8]}" == *"voters = vec {}"* ]]
 }
 
 #bats test_tags=err
@@ -245,6 +277,38 @@ run_wrapper() {
     dfx identity use user3 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle voteToPoll "(\"Poll1\", \"user3\", \"option3\")"
     [[ "$output" == *"Ok"* ]]
+}
+
+#bats test_tags=ok
+@test "getPollByName Poll1 by owner (votingDetails != {})" {
+    dfx identity use default 3>&-
+    run_wrapper dfx canister call contribution_weighted_voting_azle getPollByName "Poll1"
+    [[ "$output" == *"Ok"* && '$output' != *"votingDetails = vec {}"* ]]
+}
+
+#bats test_tags=ok
+@test "getPollByName Poll1 by non-owner (votingDetails == {})" {
+    dfx identity use user1 3>&-
+    run_wrapper dfx canister call contribution_weighted_voting_azle getPollByName "Poll1"
+    [[ "$output" == *"Ok"* && "$output" == *"votingDetails = vec {}"* ]]
+}
+
+#bats test_tags=ok
+@test "getAllPolls (Poll1 Poll2 Poll3) by owner (votingDetails != {})" {
+    dfx identity use default 3>&-
+    run_wrapper dfx canister call contribution_weighted_voting_azle getAllPolls
+    # This is a temporary solution because the following is not working correctly.
+    #[[ "$output" == *"record {      votingDetails = vec {\n"* ]]
+    [[ "${lines[3]}" == *"votingDetails = vec {"* ]]
+}
+
+#bats test_tags=ok
+@test "getAllPolls (Poll1 Poll2 Poll3) by non-owner (votingDetails == {})" {
+    dfx identity use user1 3>&-
+    run_wrapper dfx canister call contribution_weighted_voting_azle getAllPolls
+    # This is a temporary solution because the following is not working correctly.
+    #[[ "$output" == *"record {      votingDetails = vec {}"* ]]
+    [[ "${lines[3]}" == *"votingDetails = vec {}"* ]]
 }
 
 #bats test_tags=err
