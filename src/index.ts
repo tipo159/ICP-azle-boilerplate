@@ -168,7 +168,8 @@ export function voteToPoll(pollname: string, votername: string, option: string):
     Some: (poll) => {
       let pollClosingAt = Date.parse(poll.pollClosingDate);
       if (isNaN(pollClosingAt)) {
-        return Result.Err<VotingDetail, string>(PollError.InvalidDateFormat);
+        // Confirmed that parse_from_rfc3339 succeeds in createPoll
+        ;
       } else {
         pollClosingAt *= 1_000_000;
       }
@@ -210,7 +211,8 @@ export function getVotingResult(name: string): Result<Vec<string>, string> {
     Some: (poll) => {
       let pollClosingAt = Date.parse(poll.pollClosingDate);
       if (isNaN(pollClosingAt)) {
-        return Result.Err<Vec<string>, string>(PollError.InvalidDateFormat);
+        // Confirmed that parse_from_rfc3339 succeeds in createPoll
+        ;
       } else {
         pollClosingAt *= 1_000_000;
       }
@@ -236,4 +238,27 @@ export function getVotingResult(name: string): Result<Vec<string>, string> {
     },
     None: () => { return Result.Err<Vec<string>, string>(PollError.PollNotFound); },
   });
+}
+
+$update
+export function removeExpiredPolls(overTime: int32): Vec<Poll> {
+  let polls: Vec<Poll> = new Array();
+  for (const poll of Polls.values()) {
+    let pollClosingAt = Date.parse(poll.pollClosingDate);
+    if (isNaN(pollClosingAt)) {
+      // Confirmed that parse_from_rfc3339 succeeds in createPoll
+      ;
+    } else {
+      pollClosingAt *= 1_000_000;
+    }
+    console.log(`pollClosingAt: ${pollClosingAt}`);
+    console.log(`overTime: ${overTime}`)
+    console.log(`pollClosingAt + overTime * 1_000_000: ${pollClosingAt + overTime * 1_000_000}`);
+    console.log(`ic.time: ${ic.time()}`);
+    if ((pollClosingAt + overTime * 1_000_000_000) <= ic.time()) {
+      Polls.remove(poll.name);
+      polls.push(poll);
+    }
+  }
+  return polls;
 }

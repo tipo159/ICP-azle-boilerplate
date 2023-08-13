@@ -30,5 +30,6 @@ service : () -> {
   getPollByName : (text) -> (_AzleResult_1) query;
   getVotingResult : (text) -> (_AzleResult_2) query;
   registerVoterToPoll : (text, text) -> (_AzleResult);
+  removeExpiredPolls : (int32) -> (vec Poll);
   voteToPoll : (text, text, text) -> (_AzleResult_3);
 }

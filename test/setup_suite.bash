@@ -18,6 +18,6 @@ setup_suite() {
         dfx identity new user3
     fi
 
-    export DELAY=60
+    export DELAY=80
     export DATE=`date -Iseconds -v+${DELAY}S`
 }

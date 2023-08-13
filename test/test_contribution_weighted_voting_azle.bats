@@ -5,7 +5,7 @@ wait_until() {
 
     echo "wait_until(" $date ")" >& 3
     echo " start:" `date -Iseconds` >& 3
-    while [[ `date -Iseconds` != ${date} ]]; do
+    while [[ `date -Iseconds` < ${date} ]]; do
         sleep 1 3>&-
     done
     sleep 1 3>&-
@@ -352,6 +352,22 @@ run_wrapper() {
 @test "getAllPolls" {
     dfx identity use default 3>&-
     run_wrapper dfx canister call contribution_weighted_voting_azle getAllPolls
+    [[ "$output" == *"record {"* ]]
+}
+
+#bats test_tags=ok
+@test "removeExpiredPolls 10" {
+    dfx identity use default 3>&-
+    run_wrapper dfx canister call contribution_weighted_voting_azle removeExpiredPolls 10
+    echo "$output" 3>&-
+    [[ "$output" == "(vec {})" ]]
+}
+
+#bats test_tags=ok
+@test "removeExpiredPolls 1" {
+    dfx identity use default 3>&-
+    run_wrapper dfx canister call contribution_weighted_voting_azle removeExpiredPolls 1
+    echo "$output" 3>&-
     [[ "$output" == *"record {"* ]]
 }
 
