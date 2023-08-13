@@ -1,4 +1,4 @@
-import { $query, $update, ic, int32, float32, match, nat64, Principal, Record, Result, StableBTreeMap, Vec } from 'azle';
+import { $query, $update, ic, int32, float32, match, Principal, Record, Result, StableBTreeMap, Vec } from 'azle';
 
 // MAX_POLLS is set to 3 to facilitate testing.
 const MAX_POLLS = BigInt(3);
