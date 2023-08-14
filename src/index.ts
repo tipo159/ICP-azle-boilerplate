@@ -4,21 +4,21 @@ import { $query, $update, ic, int32, float32, match, Principal, Record, Result, 
 const MAX_POLLS = BigInt(3);
 
 enum PollError {
-  MaxPollsReached = "Maximum number of polls reached.",
-  InvalidDateFormat = "Date formatting is invalid.",
+  TooManyPolls = "Too many polls created.",
+  InvalidDate = "Date format is invalid.",
   PollClosingTimeMustFuture = "Poll closing time must be in the future.",
-  PollAlreadyExists = "Poll already in use.",
-  PollNotFound = "Poll not found.",
-  VoterAlreadyExists = "Voter already in use.",
-  VoterAlreadyRegistered = "Voter principal is already in use.",
-  VoterNotRegistered = "Voter not found.",
-  UnauthorizedVoter = "The registered principal and voter's principal are different.",
-  CallerNotPollOwner = "Caller is not the owner of the poll.",
-  OwnerCannotChangeContribution = "The owner of the poll cannot change their own contribution.",
-  OptionNotFound = "Option not found.",
-  VotingClosed = "Voting is closed.",
-  UnauthorizedView = "Only the voter and the owner of the poll can see voting results.",
-  BeforeDeadline = "It's before the voting deadline.",
+  PollInUse = "Poll already in use.",
+  PollNotExist = "Poll does not exist.",
+  VoterInUse = "Voter already in use.",
+  VoterPrincipalInUse = "Voter principal already in use.",
+  VoterNotExist = "Voter does not exist.",
+  VoterNotAuthorized = "Voter is not authorized.",
+  CallerNotPollOwner = "Caller is not the poll owner.",
+  PollOwnerCannotChangeContribution = "Poll owner cannot change own contribution.",
+  OptionNotExist = "Option does not exist.",
+  VotingIsOver = "Voting is over.",
+  OnlyVoterAndPollOwnerCanViewResults = "Only the voter and the poll owner can view voting results.",
+  VotingNotClosed = "Voting is not closed.",
 }
 
 type Poll = Record<{
@@ -55,12 +55,12 @@ let Polls = new StableBTreeMap<string, Poll>(0, 100, 1000);
 $update
 export function createPoll(payload: PollPayload): Result<Poll, string> {
   if (Polls.len() === MAX_POLLS) {
-    return Result.Err<Poll, string>(PollError.MaxPollsReached);
+    return Result.Err<Poll, string>(PollError.TooManyPolls);
   }
 
   let pollClosingAt = Date.parse(payload.pollClosingDate);
   if (isNaN(pollClosingAt)) {
-    return Result.Err<Poll, string>(PollError.InvalidDateFormat);
+    return Result.Err<Poll, string>(PollError.InvalidDate);
   } else {
     pollClosingAt *= 1_000_000;
     if (pollClosingAt <= ic.time()) {
@@ -69,7 +69,7 @@ export function createPoll(payload: PollPayload): Result<Poll, string> {
   }
 
   if (Polls.containsKey(payload.name)) {
-    return Result.Err<Poll, string>(PollError.PollAlreadyExists);
+    return Result.Err<Poll, string>(PollError.PollInUse);
   }
 
   const Poll: Poll = {
@@ -92,7 +92,7 @@ export function getPollByName(name: string): Result<Poll, string> {
       }
       return Result.Ok<Poll, string>(poll);
     },
-    None: () => { return Result.Err<Poll, string>(PollError.PollNotFound); },
+    None: () => { return Result.Err<Poll, string>(PollError.PollNotExist); },
   });
 }
 
@@ -115,12 +115,12 @@ export function registerVoterToPoll(pollname: string, votername: string): Result
     Some: (poll) => {
       let index = poll.voters.findIndex((elem) => elem.name === votername);
       if (index !== -1) {
-        return Result.Err<Voter, string>(PollError.VoterAlreadyExists);
+        return Result.Err<Voter, string>(PollError.VoterInUse);
       }
 
       index = poll.voters.findIndex((elem) => elem.voter.toString() === ic.caller().toString());
       if (index !== -1) {
-        return Result.Err<Voter, string>(PollError.VoterAlreadyRegistered);
+        return Result.Err<Voter, string>(PollError.VoterPrincipalInUse);
       }
 
       const voter: Voter = {
@@ -132,7 +132,7 @@ export function registerVoterToPoll(pollname: string, votername: string): Result
       Polls.insert(pollname, poll);
       return Result.Ok<Voter, string>(voter);
     },
-    None: () => { return Result.Err<Voter, string>(PollError.PollNotFound); },
+    None: () => { return Result.Err<Voter, string>(PollError.PollNotExist); },
   });
 }
 
@@ -146,12 +146,12 @@ export function changeVoterContribution(pollname: string, votername: string, con
 
       let index = poll.voters.findIndex((elem) => elem.name === votername);
       if (index === -1) {
-        return Result.Err<Voter, string>(PollError.VoterNotRegistered);
+        return Result.Err<Voter, string>(PollError.VoterNotExist);
       }
 
       let voter = poll.voters[index];
       if (voter.voter.toString() === ic.caller().toString()) {
-        return Result.Err<Voter, string>(PollError.OwnerCannotChangeContribution);
+        return Result.Err<Voter, string>(PollError.PollOwnerCannotChangeContribution);
       }
 
       voter.contribution = contribution;
@@ -159,7 +159,7 @@ export function changeVoterContribution(pollname: string, votername: string, con
       Polls.insert(pollname, poll);
       return Result.Ok<Voter, string>(voter);
     },
-    None: () => { return Result.Err<Voter, string>(PollError.PollNotFound); },
+    None: () => { return Result.Err<Voter, string>(PollError.PollNotExist); },
   });
 }
 
@@ -171,22 +171,22 @@ export function voteToPoll(pollname: string, votername: string, option: string):
       // Confirmed that parse_from_rfc3339 succeeds in createPoll
       pollClosingAt *= 1_000_000;
       if (pollClosingAt <= ic.time()) {
-        return Result.Err<VotingDetail, string>(PollError.VotingClosed);
+        return Result.Err<VotingDetail, string>(PollError.VotingIsOver);
       }
 
       let index = poll.voters.findIndex((elem) => elem.name === votername);
       if (index === -1) {
-        return Result.Err<VotingDetail, string>(PollError.VoterNotRegistered);
+        return Result.Err<VotingDetail, string>(PollError.VoterNotExist);
       }
 
       let voter = poll.voters[index];
       if (voter.voter.toString() !== ic.caller().toString()) {
-        return Result.Err<VotingDetail, string>(PollError.UnauthorizedVoter);
+        return Result.Err<VotingDetail, string>(PollError.VoterNotAuthorized);
       }
 
       index = poll.options.findIndex((elem) => elem === option);
       if (index === -1) {
-        return Result.Err<VotingDetail, string>(PollError.OptionNotFound);
+        return Result.Err<VotingDetail, string>(PollError.OptionNotExist);
       }
 
       const votingDetails: VotingDetail = {
@@ -198,7 +198,7 @@ export function voteToPoll(pollname: string, votername: string, option: string):
       Polls.insert(pollname, poll);
       return Result.Ok<VotingDetail, string>(votingDetails);
     },
-    None: () => { return Result.Err<VotingDetail, string>(PollError.PollNotFound); },
+    None: () => { return Result.Err<VotingDetail, string>(PollError.PollNotExist); },
   });
 }
 
@@ -210,13 +210,13 @@ export function getVotingResult(name: string): Result<Vec<string>, string> {
       // Confirmed that parse_from_rfc3339 succeeds in createPoll
       pollClosingAt *= 1_000_000;
       if (ic.time() < pollClosingAt) {
-        return Result.Err<Vec<string>, string>(PollError.BeforeDeadline);
+        return Result.Err<Vec<string>, string>(PollError.VotingNotClosed);
       }
 
       let index = poll.voters.findIndex((elem) => elem.voter.toString() === ic.caller().toString());
       if (index === -1) {
         if (poll.owner.toString() !== ic.caller().toString()) {
-          return Result.Err<Vec<string>, string>(PollError.UnauthorizedView);
+          return Result.Err<Vec<string>, string>(PollError.OnlyVoterAndPollOwnerCanViewResults);
         }
       }
 
@@ -229,7 +229,7 @@ export function getVotingResult(name: string): Result<Vec<string>, string> {
       }
       return Result.Ok<Vec<string>, string>(results);
     },
-    None: () => { return Result.Err<Vec<string>, string>(PollError.PollNotFound); },
+    None: () => { return Result.Err<Vec<string>, string>(PollError.PollNotExist); },
   });
 }
 
