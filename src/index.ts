@@ -123,7 +123,7 @@ export function registerVoterToPoll(pollname: string, votername: string): Result
         return Result.Err<Voter, string>(PollError.VoterAlreadyRegistered);
       }
 
-      let voter: Voter = {
+      const voter: Voter = {
         name: votername,
         voter: ic.caller(),
         contribution: 1.0,
@@ -240,7 +240,7 @@ export function removeExpiredPolls(overTime: int32): Vec<Poll> {
     let pollClosingAt = Date.parse(poll.pollClosingDate);
     // Confirmed that parse_from_rfc3339 succeeds in createPoll
     pollClosingAt *= 1_000_000;
-    if (pollClosingAt + overTime * 1_000_000_000 <= ic.time()) {
+    if ((pollClosingAt + overTime * 1_000_000_000) <= ic.time()) {
       Polls.remove(poll.name);
       polls.push(poll);
     }
