@@ -168,7 +168,7 @@ export function voteToPoll(pollname: string, votername: string, option: string):
   return match(Polls.get(pollname), {
     Some: (poll) => {
       let pollClosingAt = Date.parse(poll.pollClosingDate);
-      // Confirmed that parse_from_rfc3339 succeeds in createPoll
+      // Confirmed that Date.parse succeeds in createPoll
       pollClosingAt *= 1_000_000;
       if (pollClosingAt <= ic.time()) {
         return Result.Err<VotingDetail, string>(PollError.VotingIsOver);
@@ -207,7 +207,7 @@ export function getVotingResult(name: string): Result<Vec<string>, string> {
   return match(Polls.get(name), {
     Some: (poll) => {
       let pollClosingAt = Date.parse(poll.pollClosingDate);
-      // Confirmed that parse_from_rfc3339 succeeds in createPoll
+      // Confirmed that Date.parse succeeds in createPoll
       pollClosingAt *= 1_000_000;
       if (ic.time() < pollClosingAt) {
         return Result.Err<Vec<string>, string>(PollError.VotingNotClosed);
@@ -238,7 +238,7 @@ export function removeExpiredPolls(overTime: int32): Vec<Poll> {
   let polls: Vec<Poll> = new Array();
   for (const poll of Polls.values()) {
     let pollClosingAt = Date.parse(poll.pollClosingDate);
-    // Confirmed that parse_from_rfc3339 succeeds in createPoll
+    // Confirmed that Date.parse succeeds in createPoll
     pollClosingAt *= 1_000_000;
     if ((pollClosingAt + overTime * 1_000_000_000) <= ic.time()) {
       Polls.remove(poll.name);
