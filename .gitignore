@@ -20,5 +20,11 @@ dist/
 # azle files
 .azle/
 
+# bats files
+test/bats
+test/test_helper/
+test/test_helper/bats-assert/
+test/test_helper/bats-support/
+
 # environment variables
 .env
