@@ -91,14 +91,14 @@ wait_until() {
 #bats test_tags=err
 @test "getPollByName PollNotExist" {
     dfx identity use default
-    run dfx canister call contribution_weighted_voting_azle getPollByName "Poll4"
+    run dfx canister call contribution_weighted_voting_azle getPollByName 'Poll4'
     assert_output --partial 'Err = "Poll does not exist.'
 }
 
 #bats test_tags=ok
 @test "getPollByName Poll1" {
     dfx identity use default
-    run dfx canister call contribution_weighted_voting_azle getPollByName "Poll1"
+    run dfx canister call contribution_weighted_voting_azle getPollByName 'Poll1'
     assert_output --partial 'Ok'
 }
 
@@ -112,56 +112,56 @@ wait_until() {
 #bats test_tags=err
 @test "registerVoterToPoll PollNotExist" {
     dfx identity use default
-    run dfx canister call contribution_weighted_voting_azle registerVoterToPoll "(\"Poll4\", \"user0\")"
+    run dfx canister call contribution_weighted_voting_azle registerVoterToPoll '("Poll4", "user0")'
     assert_output --partial 'Err = "Poll does not exist.'
 }
 
 #bats test_tags=ok
 @test "registerVoterToPoll Poll1 user0" {
     dfx identity use default
-    run dfx canister call contribution_weighted_voting_azle registerVoterToPoll "(\"Poll1\", \"user0\")"
+    run dfx canister call contribution_weighted_voting_azle registerVoterToPoll '("Poll1", "user0")'
     assert_output --partial 'Ok'
 }
 
 #bats test_tags=err
 @test "registerVoterToPoll VoterInUse" {
     dfx identity use default
-    run dfx canister call contribution_weighted_voting_azle registerVoterToPoll "(\"Poll1\", \"user0\")"
+    run dfx canister call contribution_weighted_voting_azle registerVoterToPoll '("Poll1", "user0")'
     assert_output --partial 'Err = "Voter already in use.'
 }
 
 #bats test_tags=err
 @test "registerVoterToPoll VoterPrincipalInUse" {
     dfx identity use default
-    run dfx canister call contribution_weighted_voting_azle registerVoterToPoll "(\"Poll1\", \"user1\")"
+    run dfx canister call contribution_weighted_voting_azle registerVoterToPoll '("Poll1", "user1")'
     assert_output --partial 'Err = "Voter principal already in use.'
 }
 
 #bats test_tags=ok
 @test "registerVoterToPoll Poll1 user1" {
     dfx identity use user1
-    run dfx canister call contribution_weighted_voting_azle registerVoterToPoll "(\"Poll1\", \"user1\")"
+    run dfx canister call contribution_weighted_voting_azle registerVoterToPoll '("Poll1", "user1")'
     assert_output --partial 'Ok'
 }
 
 #bats test_tags=ok
 @test "registerVoterToPoll Poll1 user2" {
     dfx identity use user2
-    run dfx canister call contribution_weighted_voting_azle registerVoterToPoll "(\"Poll1\", \"user2\")"
+    run dfx canister call contribution_weighted_voting_azle registerVoterToPoll '("Poll1", "user2")'
     assert_output --partial 'Ok'
 }
 
 #bats test_tags=ok
 @test "registerVoterToPoll Poll1 user3" {
     dfx identity use user3
-    run dfx canister call contribution_weighted_voting_azle registerVoterToPoll "(\"Poll1\", \"user3\")"
+    run dfx canister call contribution_weighted_voting_azle registerVoterToPoll '("Poll1", "user3")'
     assert_output --partial 'Ok'
 }
 
 #bats test_tags=ok
 @test "getPollByName Poll1 by owner (voters != {})" {
     dfx identity use default
-    run dfx canister call contribution_weighted_voting_azle getPollByName "Poll1"
+    run dfx canister call contribution_weighted_voting_azle getPollByName 'Poll1'
     assert_line --index 2 '    Ok = record {'
     assert_line --index 8 '      voters = vec {'
 }
@@ -169,7 +169,7 @@ wait_until() {
 #bats test_tags=ok
 @test "getPollByName Poll1 by non-owner (voters == {})" {
     dfx identity use user1
-    run dfx canister call contribution_weighted_voting_azle getPollByName "Poll1"
+    run dfx canister call contribution_weighted_voting_azle getPollByName 'Poll1'
     assert_line --index 2 '    Ok = record {'
     assert_line --index 8 '      voters = vec {};'
 }
@@ -191,98 +191,98 @@ wait_until() {
 #bats test_tags=err
 @test "changeVoterContribution PollOwnerCannotChangeContribution" {
     dfx identity use default
-    run dfx canister call contribution_weighted_voting_azle changeVoterContribution "(\"Poll1\", \"user0\", 1.1)"
+    run dfx canister call contribution_weighted_voting_azle changeVoterContribution '("Poll1", "user0", 1.1)'
     assert_output --partial 'Err = "Poll owner cannot change own contribution.'
 }
 
 #bats test_tags=err
 @test "changeVoterContribution CallerNotPollOwner" {
     dfx identity use user1
-    run dfx canister call contribution_weighted_voting_azle changeVoterContribution "(\"Poll1\", \"user1\", 1.1)"
+    run dfx canister call contribution_weighted_voting_azle changeVoterContribution '("Poll1", "user1", 1.1)'
     assert_output --partial 'Err = "Caller is not the poll owner.'
 }
 
 #bats test_tags=err
 @test "changeVoterContribution VoterNotExist" {
     dfx identity use default
-    run dfx canister call contribution_weighted_voting_azle changeVoterContribution "(\"Poll1\", \"user4\", 1.1)"
+    run dfx canister call contribution_weighted_voting_azle changeVoterContribution '("Poll1", "user4", 1.1)'
     assert_output --partial 'Err = "Voter does not exist.'
 }
 
 #bats test_tags=err
 @test "changeVoterContribution PollNotExist" {
     dfx identity use default
-    run dfx canister call contribution_weighted_voting_azle changeVoterContribution "(\"Poll4\", \"user1\", 1.1)"
+    run dfx canister call contribution_weighted_voting_azle changeVoterContribution '("Poll4", "user1", 1.1)'
     assert_output --partial 'Err = "Poll does not exist.'
 }
 
 #bats test_tags=ok
 @test "changeVoterContribution Poll1 user1 1.1" {
     dfx identity use default
-    run dfx canister call contribution_weighted_voting_azle changeVoterContribution "(\"Poll1\", \"user1\", 1.1)"
+    run dfx canister call contribution_weighted_voting_azle changeVoterContribution '("Poll1", "user1", 1.1)'
     assert_output --partial 'Ok'
 }
 
 #bats test_tags=err
 @test "voteToPoll PollNotExist" {
     dfx identity use user1
-    run dfx canister call contribution_weighted_voting_azle voteToPoll "(\"Poll4\", \"user4\", \"option1\")"
+    run dfx canister call contribution_weighted_voting_azle voteToPoll '("Poll4", "user4", "option1")'
     assert_output --partial 'Err = "Poll does not exist.'
 }
 
 #bats test_tags=err
 @test "voteToPoll VoterNotExist" {
     dfx identity use user1
-    run dfx canister call contribution_weighted_voting_azle voteToPoll "(\"Poll1\", \"user4\", \"option1\")"
+    run dfx canister call contribution_weighted_voting_azle voteToPoll '("Poll1", "user4", "option1")'
     assert_output --partial 'Err = "Voter does not exist.'
 }
 
 #bats test_tags=err
 @test "voteToPoll VoterNotAuthorized" {
     dfx identity use default
-    run dfx canister call contribution_weighted_voting_azle voteToPoll "(\"Poll1\", \"user1\", \"option1\")"
+    run dfx canister call contribution_weighted_voting_azle voteToPoll '("Poll1", "user1", "option1")'
     assert_output --partial 'Err = "Voter is not authorized.'
 }
 
 #bats test_tags=err
 @test "voteToPoll OptionNotExist" {
     dfx identity use user1
-    run dfx canister call contribution_weighted_voting_azle voteToPoll "(\"Poll1\", \"user1\", \"option4\")"
+    run dfx canister call contribution_weighted_voting_azle voteToPoll '("Poll1", "user1", "option4")'
     assert_output --partial 'Err = "Option does not exist.'
 }
 
 #bats test_tags=ok
 @test "voteToPoll Poll1 user0 option1" {
     dfx identity use default
-    run dfx canister call contribution_weighted_voting_azle voteToPoll "(\"Poll1\", \"user0\", \"option1\")"
+    run dfx canister call contribution_weighted_voting_azle voteToPoll '("Poll1", "user0", "option1")'
     assert_output --partial 'Ok'
 }
 
 #bats test_tags=ok
 @test "voteToPoll Poll1 user1 option1" {
     dfx identity use user1
-    run dfx canister call contribution_weighted_voting_azle voteToPoll "(\"Poll1\", \"user1\", \"option1\")"
+    run dfx canister call contribution_weighted_voting_azle voteToPoll '("Poll1", "user1", "option1")'
     assert_output --partial 'Ok'
 }
 
 #bats test_tags=ok
 @test "voteToPoll Poll1 user2 option2" {
     dfx identity use user2
-    run dfx canister call contribution_weighted_voting_azle voteToPoll "(\"Poll1\", \"user2\", \"option2\")"
+    run dfx canister call contribution_weighted_voting_azle voteToPoll '("Poll1", "user2", "option2")'
     assert_output --partial 'Ok'
 }
 
 #bats test_tags=ok
 @test "voteToPoll Poll1 user3 option3" {
     dfx identity use user3
-    run dfx canister call contribution_weighted_voting_azle voteToPoll "(\"Poll1\", \"user3\", \"option3\")"
+    run dfx canister call contribution_weighted_voting_azle voteToPoll '("Poll1", "user3", "option3")'
     assert_output --partial 'Ok'
 }
 
 #bats test_tags=ok
 @test "getPollByName Poll1 by owner (votingDetails != {})" {
     dfx identity use default
-    run dfx canister call contribution_weighted_voting_azle getPollByName "Poll1"
+    run dfx canister call contribution_weighted_voting_azle getPollByName 'Poll1'
     assert_line --index 2 '    Ok = record {'
     assert_line --index 3 '      votingDetails = vec {'
 }
@@ -290,7 +290,7 @@ wait_until() {
 #bats test_tags=ok
 @test "getPollByName Poll1 by non-owner (votingDetails == {})" {
     dfx identity use user1
-    run dfx canister call contribution_weighted_voting_azle getPollByName "Poll1"
+    run dfx canister call contribution_weighted_voting_azle getPollByName 'Poll1'
     assert_line --index 2 '    Ok = record {'
     assert_line --index 3 '      votingDetails = vec {};'
 }
@@ -312,7 +312,7 @@ wait_until() {
 #bats test_tags=err
 @test "getVotingResult VotingNotClosed" {
     dfx identity use user1
-    run dfx canister call contribution_weighted_voting_azle getVotingResult "Poll1"
+    run dfx canister call contribution_weighted_voting_azle getVotingResult 'Poll1'
     assert_output --partial 'Err = "Voting is not closed.'
 }
 
@@ -321,28 +321,28 @@ wait_until() {
     wait_until ${DATE}
 
     dfx identity use user1
-    run dfx canister call contribution_weighted_voting_azle getVotingResult "Poll1"
+    run dfx canister call contribution_weighted_voting_azle getVotingResult 'Poll1'
     assert_output --partial 'Ok = vec { "option1: 2.10"; "option2: 1.00"; "option3: 1.00" }'
 }
 
 #bats test_tags=err
 @test "getVotingResult PollNotExist" {
     dfx identity use user1
-    run dfx canister call contribution_weighted_voting_azle getVotingResult "Poll4"
+    run dfx canister call contribution_weighted_voting_azle getVotingResult 'Poll4'
     assert_output --partial 'Err = "Poll does not exist.'
 }
 
 #bats test_tags=err
 @test "getVotingResult OnlyVoterAndPollOwnerCanViewResults" {
     dfx identity use anonymous
-    run dfx canister call contribution_weighted_voting_azle getVotingResult "Poll1"
+    run dfx canister call contribution_weighted_voting_azle getVotingResult 'Poll1'
     assert_output --partial 'Err = "Only the voter and the poll owner can view voting results.'
 }
 
 #bats test_tags=err
 @test "voteToPoll VotingIsOver" {
     dfx identity use user1
-    run dfx canister call contribution_weighted_voting_azle voteToPoll "(\"Poll1\", \"user1\", \"option1\")"
+    run dfx canister call contribution_weighted_voting_azle voteToPoll '("Poll1", "user1", "option1")'
     assert_output --partial 'Err = "Voting is over.'
 }
 
